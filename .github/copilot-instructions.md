@@ -191,3 +191,77 @@ Use **Enterprise / Corporate** style (information-dense, compact spacing, fully 
 - Placeholder-only form fields (always use visible labels)
 - Equal-weight buttons (establish primary/secondary/tertiary hierarchy)
 - Tiny text under 12 px (body text minimum 14 px, prefer 16 px)
+
+---
+
+## UI/UX Pro Max — UX Quality Rules
+
+> Sourced from [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) (MIT). Apply to every UI generated for this project.
+
+### Rule Priority Tiers
+
+| Priority | Category | Impact |
+|----------|----------|--------|
+| 1 | Accessibility | CRITICAL |
+| 2 | Touch & Interaction | CRITICAL |
+| 3 | Performance | HIGH |
+| 4 | Layout & Responsive | HIGH |
+| 5 | Typography & Color | MEDIUM |
+| 6 | Animation | MEDIUM |
+| 7 | Style Consistency | MEDIUM |
+
+### Accessibility (CRITICAL)
+- Minimum **4.5:1** contrast ratio for normal text (WCAG AA)
+- Visible **focus rings** on all interactive elements
+- Descriptive **alt text** for meaningful images
+- `aria-label` on icon-only buttons
+- **Tab order** matches visual reading order
+- Every `<input>` has an associated `<label>` with `htmlFor`
+
+### Touch & Interaction (CRITICAL)
+- Minimum **44×44 px** touch targets for all clickable elements
+- Add **`cursor-pointer`** to every clickable element — no exceptions
+- **Disable** buttons during async operations + show loading state
+- Show **clear error messages** near the problem field, not just at the top
+- Use `click`/`tap` for primary interactions (not hover-only)
+
+### Layout & Responsive (HIGH)
+- Include viewport meta: `width=device-width, initial-scale=1`
+- Minimum **16 px** body text on mobile
+- No **horizontal scroll** on any viewport width
+- Define a **z-index scale** (10, 20, 30, 50) — never use arbitrary z-index values
+- Use consistent `max-w-6xl` or `max-w-7xl` container width — don't mix
+
+### Typography & Color (MEDIUM)
+- **Line height** 1.5–1.75 for body text
+- **Line length** 65–75 characters maximum per line
+- `text-slate-900` (`#0F172A`) for primary body text — never use `slate-400` for body
+- `text-slate-600` minimum for muted/secondary text — nothing lighter
+- `border-slate-200` for borders in light mode — not `border-white/10` (invisible)
+
+### Animation (MEDIUM)
+- **150–300 ms** for micro-interactions; nothing slower than 300 ms for hover
+- Use `transform` and `opacity` for animations — never animate `width`/`height`
+- Respect `prefers-reduced-motion` — wrap animations in the media query
+- Hover states: use `transition-colors duration-200` as baseline
+
+### Professional UI Common Rules
+| Issue | Do | Don't |
+|-------|-----|-------|
+| Icons | SVG icons from Lucide React | Emojis as UI icons |
+| Hover feedback | Color/shadow/border change | No visual feedback |
+| Card click area | `cursor-pointer` on card wrapper | Default cursor on interactive cards |
+| Transparent elements | `bg-white/80` or higher in light mode | `bg-white/10` (too transparent) |
+| Navbar spacing | Account for fixed navbar height in content | Let content hide behind fixed elements |
+
+### Pre-Delivery Checklist (Run Before Every UI Commit)
+- [ ] No emojis used as icons — Lucide React SVGs only
+- [ ] All clickable elements have `cursor-pointer`
+- [ ] Hover states have visual feedback with smooth transition (150–300 ms)
+- [ ] Light mode text contrast ≥ 4.5:1
+- [ ] Focus states visible for keyboard navigation
+- [ ] `prefers-reduced-motion` respected for animations
+- [ ] Responsive at 375 px, 768 px, 1024 px, 1440 px
+- [ ] No horizontal scroll on mobile
+- [ ] All form inputs have visible `<label>` elements
+- [ ] Buttons disabled + spinner shown during async operations
