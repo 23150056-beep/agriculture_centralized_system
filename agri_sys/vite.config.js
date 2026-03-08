@@ -4,5 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: { proxy: { '/auth': 'http://localhost:8000', '/products': 'http://localhost:8000', '/orders': 'http://localhost:8000' } },
+  server: {
+    host: true,
+    proxy: {
+      '/auth':          { target: 'http://localhost:8001', changeOrigin: true },
+      '/products':      { target: 'http://localhost:8001', changeOrigin: true },
+      '/distributions': { target: 'http://localhost:8001', changeOrigin: true },
+      '/programs':      { target: 'http://localhost:8001', changeOrigin: true },
+    },
+  },
 })
