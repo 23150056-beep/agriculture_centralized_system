@@ -126,7 +126,7 @@ export default function Orders() {
                     {!isFarmer && <td className="px-4 py-3 text-gray-800">{farmer?.name || `Farmer #${d.buyer_id}`}</td>}
                     <td className="px-4 py-3 text-gray-800 font-medium">{prod?.name || `Item #${d.product_id}`}</td>
                     <td className="px-4 py-3 text-gray-600">{d.quantity} {d.unit || ''}</td>
-                    <td className="px-4 py-3 text-gray-600">{program?.name || d.program_id ? `Program #${d.program_id}` : '-'}</td>
+                    <td className="px-4 py-3 text-gray-600">{program?.name || (d.program_id ? `Program #${d.program_id}` : '-')}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${statusColors[d.status]}`}>
                         {d.status}

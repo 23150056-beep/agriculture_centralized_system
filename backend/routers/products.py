@@ -20,6 +20,7 @@ def list_products(
     status: SupplyStatus | None = None,
     low_stock: bool = False,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """List intervention supplies with filtering options"""
     q = db.query(Product)

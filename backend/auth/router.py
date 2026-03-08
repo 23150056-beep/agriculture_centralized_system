@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from config.database import get_db
 from models.user import User, UserRole, FarmerStatus
 from schemas.auth import (
@@ -112,7 +112,7 @@ def update_farmer_insurance(
     # Officers/admins can validate insurance
     if current_user.role in [UserRole.admin.value, UserRole.officer.value]:
         farmer.insurance_validated = True
-        farmer.insurance_validated_at = datetime.utcnow()
+        farmer.insurance_validated_at = datetime.now(timezone.utc)
         farmer.insurance_validated_by = current_user.id
     
     db.commit()
@@ -139,7 +139,7 @@ def update_farmer_eligibility(
     farmer.documents_verified = data.documents_verified
     farmer.profile_notes = data.profile_notes
     farmer.approved_by = current_user.id
-    farmer.approved_at = datetime.utcnow()
+    farmer.approved_at = datetime.now(timezone.utc)
     
     if data.eligibility_status == FarmerStatus.rejected:
         farmer.rejection_reason = data.rejection_reason

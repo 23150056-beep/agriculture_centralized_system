@@ -5,7 +5,7 @@ from datetime import datetime
 import secrets
 from config.database import get_db
 from models.order import Order, DistributionStatus
-from models.product import Product
+from models.product import Product, SupplyStatus
 from models.user import User, UserRole, FarmerStatus
 from schemas.order import OrderCreate, OrderUpdateStatus, OrderOut, DistributionRelease, DistributionReport
 from auth.dependencies import get_current_user
@@ -157,7 +157,15 @@ def create_distribution(
     
     # Auto stock deduction
     product.current_stock -= data.quantity
-    
+
+    # Auto-update product status after deduction
+    if product.current_stock <= 0:
+        product.status = SupplyStatus.out_of_stock.value
+    elif product.current_stock <= product.reorder_level:
+        product.status = SupplyStatus.low_stock.value
+    else:
+        product.status = SupplyStatus.in_stock.value
+
     db.add(order)
     db.commit()
     db.refresh(order)

@@ -10,6 +10,7 @@ class ProgramCreate(BaseModel):
     name: str
     description: str | None = None
     program_type: ProgramType = ProgramType.other
+    status: ProgramStatus = ProgramStatus.planned
     start_date: datetime
     end_date: datetime | None = None
     budget: float | None = None
