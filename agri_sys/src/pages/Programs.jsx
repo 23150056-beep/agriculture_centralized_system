@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Plus, X, Briefcase, Users, TrendingUp } from 'lucide-react';
+import { Plus, X, Briefcase, Users, TrendingUp, CalendarDays } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const programTypes = ['emergency_relief', 'seasonal_support', 'subsidy_program', 'disaster_recovery', 'training_program', 'equipment_distribution', 'other'];
@@ -10,7 +10,7 @@ const programStatuses = ['planned', 'active', 'completed', 'suspended', 'cancell
 const statusColors = {
   planned: 'bg-blue-100 text-blue-700',
   active: 'bg-green-100 text-green-700',
-  completed: 'bg-gray-100 text-gray-700',
+  completed: 'bg-slate-100 text-slate-600',
   suspended: 'bg-yellow-100 text-yellow-700',
   cancelled: 'bg-red-100 text-red-700',
 };
@@ -30,6 +30,9 @@ const empty = {
   coordinator_contact: '',
   notes: '',
 };
+
+const inputCls = 'w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none bg-white transition-colors';
+const labelCls = 'block text-xs font-semibold text-slate-600 mb-1.5';
 
 export default function Programs() {
   const { user } = useAuth();
@@ -122,11 +125,20 @@ export default function Programs() {
 
   if (!isAuthorized) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">You don't have permission to view this page</p>
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-4">
+          <Briefcase size={22} className="text-slate-400" />
+        </div>
+        <p className="text-sm font-semibold text-slate-700 mb-1">Access Restricted</p>
+        <p className="text-xs text-slate-500">You don't have permission to view this page.</p>
       </div>
     );
   }
+
+  const beneficiaryProgress = (program) => {
+    if (!program.target_beneficiaries || program.target_beneficiaries === 0) return 0;
+    return Math.min(100, Math.round((program.actual_beneficiaries / program.target_beneficiaries) * 100));
+  };
 
   return (
     <div>
@@ -142,7 +154,7 @@ export default function Programs() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition text-sm font-medium cursor-pointer shadow-sm"
+          className="flex items-center gap-2 bg-green-700 text-white px-4 py-2.5 rounded-lg hover:bg-green-800 transition-colors duration-200 text-sm font-semibold cursor-pointer shadow-sm"
         >
           <Plus size={16} /> Create Program
         </button>
@@ -152,47 +164,60 @@ export default function Programs() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {programs.map(program => (
           <div key={program.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Briefcase size={18} className="text-gray-400" />
-                <h3 className="font-semibold text-gray-800">{program.name}</h3>
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Briefcase size={16} className="text-slate-500 shrink-0" />
+                <h3 className="font-semibold text-slate-900 leading-snug truncate">{program.name}</h3>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${statusColors[program.status]}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full capitalize shrink-0 ml-2 font-semibold ${statusColors[program.status]}`}>
                 {program.status}
               </span>
             </div>
 
-            <p className="text-xs text-gray-500 mb-3 font-mono">{program.program_code}</p>
+            <p className="text-xs text-slate-400 mb-3 font-mono">{program.program_code}</p>
             
             {program.description && (
-              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{program.description}</p>
+              <p className="text-sm text-slate-600 mb-3 line-clamp-2 leading-relaxed">{program.description}</p>
             )}
 
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Type:</span>
-                <span className="text-gray-800 capitalize">{program.program_type.replace('_', ' ')}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Target Farmers:</span>
-                <span className="text-gray-800">{program.target_beneficiaries || '-'}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Beneficiaries:</span>
-                <span className="font-semibold text-green-600">{program.actual_beneficiaries}</span>
+            <div className="space-y-1.5 mb-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Type:</span>
+                <span className="text-slate-700 capitalize font-medium">{program.program_type.replace(/_/g, ' ')}</span>
               </div>
             </div>
 
-            <div className="flex gap-2 pt-3 border-t border-gray-100">
+            {/* Beneficiary Progress */}
+            {program.target_beneficiaries > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex items-center gap-1 text-slate-500">
+                    <Users size={11} />
+                    <span>Beneficiaries</span>
+                  </div>
+                  <span className="text-slate-700 font-semibold tabular-nums">
+                    {program.actual_beneficiaries} <span className="text-slate-400 font-normal">/ {program.target_beneficiaries}</span>
+                  </span>
+                </div>
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all duration-300"
+                    style={{ width: `${beneficiaryProgress(program)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-3 border-t border-slate-100">
               <button
                 onClick={() => openDetail(program)}
-                className="flex-1 text-blue-600 hover:text-blue-700 text-sm cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer"
               >
                 View Details
               </button>
               <button
                 onClick={() => openEdit(program)}
-                className="text-gray-600 hover:text-gray-700 text-sm cursor-pointer"
+                className="inline-flex items-center text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer"
               >
                 Edit
               </button>
@@ -200,17 +225,31 @@ export default function Programs() {
           </div>
         ))}
         {programs.length === 0 && (
-          <p className="text-gray-400 col-span-full text-center py-12">No programs yet</p>
+          <div className="col-span-full flex flex-col items-center justify-center py-16 px-6 text-center bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-4">
+              <CalendarDays size={22} className="text-slate-400" />
+            </div>
+            <p className="text-sm font-semibold text-slate-700 mb-1">No programs created yet</p>
+            <p className="text-xs text-slate-500 mb-4 max-w-xs">
+              Create your first intervention program to begin distributing supplies to farmers.
+            </p>
+            <button
+              onClick={openCreate}
+              className="inline-flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-sm font-semibold cursor-pointer"
+            >
+              <Plus size={15} /> Create First Program
+            </button>
+          </div>
         )}
       </div>
 
       {/* Create/Edit Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
               <h2 className="text-base font-bold text-slate-900">{editing ? 'Edit Program' : 'Create New Program'}</h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer" aria-label="Close dialog">
                 <X size={20} />
               </button>
             </div>
@@ -218,165 +257,112 @@ export default function Programs() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Program Code *</label>
+                  <label htmlFor="prog-code" className={labelCls}>Program Code *</label>
                   <input
+                    id="prog-code"
                     type="text"
                     required
                     placeholder="e.g., PROG-2026-001"
                     value={form.program_code}
                     onChange={set('program_code')}
                     disabled={!!editing}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+                    className={inputCls + (editing ? ' disabled:bg-slate-50 disabled:text-slate-400 cursor-not-allowed' : '')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={set('status')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    {programStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                  <label htmlFor="prog-status" className={labelCls}>Status</label>
+                  <select id="prog-status" value={form.status} onChange={set('status')} className={inputCls + ' cursor-pointer'}>
+                    {programStatuses.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Program Name *</label>
+                <label htmlFor="prog-name" className={labelCls}>Program Name *</label>
                 <input
+                  id="prog-name"
                   type="text"
                   required
                   placeholder="Enter program name"
                   value={form.name}
                   onChange={set('name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label htmlFor="prog-desc" className={labelCls}>Description</label>
                 <textarea
+                  id="prog-desc"
                   value={form.description}
                   onChange={set('description')}
                   rows={3}
-                  placeholder="Describe the program"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Describe the program objectives and scope"
+                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Program Type</label>
-                <select
-                  value={form.program_type}
-                  onChange={set('program_type')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  {programTypes.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                <label htmlFor="prog-type" className={labelCls}>Program Type</label>
+                <select id="prog-type" value={form.program_type} onChange={set('program_type')} className={inputCls + ' cursor-pointer'}>
+                  {programTypes.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={form.start_date}
-                    onChange={set('start_date')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <label htmlFor="prog-start" className={labelCls}>Start Date *</label>
+                  <input id="prog-start" type="date" required value={form.start_date} onChange={set('start_date')} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={form.end_date}
-                    onChange={set('end_date')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <label htmlFor="prog-end" className={labelCls}>End Date</label>
+                  <input id="prog-end" type="date" value={form.end_date} onChange={set('end_date')} className={inputCls} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Budget (USD)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Enter budget"
-                    value={form.budget}
-                    onChange={set('budget')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <label htmlFor="prog-budget" className={labelCls}>Budget (USD)</label>
+                  <input id="prog-budget" type="number" step="0.01" placeholder="Enter budget amount" value={form.budget} onChange={set('budget')} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Beneficiaries</label>
-                  <input
-                    type="number"
-                    placeholder="Number of farmers"
-                    value={form.target_beneficiaries}
-                    onChange={set('target_beneficiaries')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <label htmlFor="prog-target" className={labelCls}>Target Beneficiaries</label>
+                  <input id="prog-target" type="number" placeholder="Number of farmers" value={form.target_beneficiaries} onChange={set('target_beneficiaries')} className={inputCls} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Implementing Agency</label>
-                <input
-                  type="text"
-                  placeholder="Agency name"
-                  value={form.implementing_agency}
-                  onChange={set('implementing_agency')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                />
+                <label htmlFor="prog-agency" className={labelCls}>Implementing Agency</label>
+                <input id="prog-agency" type="text" placeholder="Agency name" value={form.implementing_agency} onChange={set('implementing_agency')} className={inputCls} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Coordinator Name</label>
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    value={form.coordinator_name}
-                    onChange={set('coordinator_name')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <label htmlFor="prog-coord-name" className={labelCls}>Coordinator Name</label>
+                  <input id="prog-coord-name" type="text" placeholder="Full name" value={form.coordinator_name} onChange={set('coordinator_name')} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Coordinator Contact</label>
-                  <input
-                    type="text"
-                    placeholder="Email or phone"
-                    value={form.coordinator_contact}
-                    onChange={set('coordinator_contact')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <label htmlFor="prog-coord-contact" className={labelCls}>Coordinator Contact</label>
+                  <input id="prog-coord-contact" type="text" placeholder="Email or phone" value={form.coordinator_contact} onChange={set('coordinator_contact')} className={inputCls} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <textarea
-                  value={form.notes}
-                  onChange={set('notes')}
-                  rows={2}
-                  placeholder="Additional notes"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                />
+                <label htmlFor="prog-notes" className={labelCls}>Notes</label>
+                <textarea id="prog-notes" value={form.notes} onChange={set('notes')} rows={2} placeholder="Additional notes or remarks" className={inputCls} />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition cursor-pointer text-sm font-semibold"
+                  className="flex-1 bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition-colors duration-200 cursor-pointer text-sm font-semibold"
                 >
                   {editing ? 'Update Program' : 'Create Program'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                  className="px-5 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors duration-200 cursor-pointer text-sm text-slate-700"
                 >
                   Cancel
                 </button>
@@ -388,13 +374,14 @@ export default function Programs() {
 
       {/* Program Detail Modal */}
       {showDetail && selectedProgram && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
               <h2 className="text-base font-bold text-slate-900">{selectedProgram.name}</h2>
               <button
                 onClick={() => setShowDetail(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                aria-label="Close dialog"
               >
                 <X size={20} />
               </button>
@@ -407,21 +394,21 @@ export default function Programs() {
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp size={16} className="text-blue-600" />
-                      <span className="text-xs text-blue-600 font-medium">Distributions</span>
+                    <span className="text-xs text-blue-600 font-semibold">Distributions</span>
                     </div>
                     <p className="text-2xl font-bold text-blue-700">{programStats.total_distributions}</p>
                   </div>
                   <div className="bg-green-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Users size={16} className="text-green-600" />
-                      <span className="text-xs text-green-600 font-medium">Beneficiaries</span>
+                    <span className="text-xs text-green-600 font-semibold">Beneficiaries</span>
                     </div>
                     <p className="text-2xl font-bold text-green-700">{programStats.total_beneficiaries}</p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Briefcase size={16} className="text-purple-600" />
-                      <span className="text-xs text-purple-600 font-medium">Items Distributed</span>
+                    <span className="text-xs text-purple-600 font-semibold">Items Distributed</span>
                     </div>
                     <p className="text-2xl font-bold text-purple-700">{programStats.total_items_distributed.toFixed(1)}</p>
                   </div>
@@ -430,38 +417,38 @@ export default function Programs() {
 
               {/* Program Details */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Program Details</h3>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Program Details</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Program Code:</span>
-                    <p className="font-mono text-xs text-gray-800">{selectedProgram.program_code}</p>
+                    <span className="text-xs text-slate-500">Program Code</span>
+                    <p className="font-mono text-xs text-slate-800 mt-0.5">{selectedProgram.program_code}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Status:</span>
-                    <p className="text-gray-800 capitalize">{selectedProgram.status}</p>
+                    <span className="text-xs text-slate-500">Status</span>
+                    <p className="text-slate-800 capitalize mt-0.5">{selectedProgram.status}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Type:</span>
-                    <p className="text-gray-800 capitalize">{selectedProgram.program_type.replace('_', ' ')}</p>
+                    <span className="text-xs text-slate-500">Type</span>
+                    <p className="text-slate-800 capitalize mt-0.5">{selectedProgram.program_type.replace(/_/g, ' ')}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Start Date:</span>
-                    <p className="text-gray-800">{new Date(selectedProgram.start_date).toLocaleDateString()}</p>
+                    <span className="text-xs text-slate-500">Start Date</span>
+                    <p className="text-slate-800 mt-0.5">{new Date(selectedProgram.start_date).toLocaleDateString()}</p>
                   </div>
                   {selectedProgram.budget && (
                     <div>
-                      <span className="text-gray-500">Budget:</span>
-                      <p className="text-gray-800">${selectedProgram.budget.toLocaleString()}</p>
+                      <span className="text-xs text-slate-500">Budget</span>
+                      <p className="text-slate-800 font-semibold mt-0.5">${selectedProgram.budget.toLocaleString()}</p>
                     </div>
                   )}
                   <div>
-                    <span className="text-gray-500">Target Beneficiaries:</span>
-                    <p className="text-gray-800">{selectedProgram.target_beneficiaries || '-'}</p>
+                    <span className="text-xs text-slate-500">Target Beneficiaries</span>
+                    <p className="text-slate-800 mt-0.5">{selectedProgram.target_beneficiaries || '—'}</p>
                   </div>
                   {selectedProgram.implementing_agency && (
                     <div className="col-span-2">
-                      <span className="text-gray-500">Implementing Agency:</span>
-                      <p className="text-gray-800">{selectedProgram.implementing_agency}</p>
+                      <span className="text-xs text-slate-500">Implementing Agency</span>
+                      <p className="text-slate-800 mt-0.5">{selectedProgram.implementing_agency}</p>
                     </div>
                   )}
                 </div>
@@ -469,8 +456,8 @@ export default function Programs() {
 
               {selectedProgram.description && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Description</h3>
-                  <p className="text-sm text-gray-600">{selectedProgram.description}</p>
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Description</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">{selectedProgram.description}</p>
                 </div>
               )}
             </div>
