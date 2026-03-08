@@ -81,13 +81,18 @@ export default function Products() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Inventory & Stock Monitoring</h1>
-          <p className="text-sm text-gray-500 mt-1">Monitor intervention supplies and track stock levels</p>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-emerald-700 rounded-xl flex items-center justify-center shadow-sm">
+            <Package size={17} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Inventory & Stock Monitoring</h1>
+            <p className="text-sm text-slate-500">Monitor intervention supplies and track stock levels</p>
+          </div>
         </div>
         {isAuthorized && (
-          <button onClick={openCreate} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm cursor-pointer">
+          <button onClick={openCreate} className="flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition text-sm font-medium cursor-pointer shadow-sm">
             <Plus size={16} /> Add Supply
           </button>
         )}
@@ -95,9 +100,9 @@ export default function Products() {
 
       {/* Filters */}
       <div className="flex gap-2 mb-6">
-        <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg text-sm transition ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>All Items</button>
-        <button onClick={() => setFilter('low_stock')} className={`px-4 py-2 rounded-lg text-sm transition ${filter === 'low_stock' ? 'bg-yellow-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>Low Stock</button>
-        <button onClick={() => setFilter('out_of_stock')} className={`px-4 py-2 rounded-lg text-sm transition ${filter === 'out_of_stock' ? 'bg-red-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>Out of Stock</button>
+        <button onClick={() => setFilter('all')} className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${filter === 'all' ? 'bg-green-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'}`}>All Items</button>
+        <button onClick={() => setFilter('low_stock')} className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${filter === 'low_stock' ? 'bg-amber-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'}`}>Low Stock</button>
+        <button onClick={() => setFilter('out_of_stock')} className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${filter === 'out_of_stock' ? 'bg-red-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'}`}>Out of Stock</button>
       </div>
 
       {/* Product Grid */}
@@ -147,9 +152,9 @@ export default function Products() {
             )}
 
             {isAuthorized && (
-              <div className="flex gap-2 pt-3 border-t border-gray-100">
-                <button onClick={() => openEdit(p)} className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1 cursor-pointer">
-                  <Pencil size={14} /> Edit
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button onClick={() => openEdit(p)} className="text-green-700 hover:text-green-800 text-xs font-semibold flex items-center gap-1 cursor-pointer bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition">
+                  <Pencil size={13} /> Edit
                 </button>
               </div>
             )}
@@ -162,9 +167,9 @@ export default function Products() {
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 m-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">{editing ? 'Edit Inventory Item' : 'Add New Supply'}</h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer"><X size={20} /></button>
+          <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-slate-900">{editing ? 'Edit Inventory Item' : 'Add New Supply'}</h2>
+              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-3">
               <input type="text" required placeholder="Item name" value={form.name} onChange={set('name')} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500" />
@@ -180,7 +185,7 @@ export default function Products() {
               <input type="text" placeholder="Supplier name (optional)" value={form.supplier_name} onChange={set('supplier_name')} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500" />
               <input type="text" placeholder="Batch number (optional)" value={form.batch_number} onChange={set('batch_number')} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500" />
               <input type="text" placeholder="Storage location (optional)" value={form.storage_location} onChange={set('storage_location')} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500" />
-              <button type="submit" className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition cursor-pointer">{editing ? 'Update' : 'Add Supply'}</button>
+              <button type="submit" className="w-full bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition cursor-pointer text-sm font-semibold">{editing ? 'Update' : 'Add Supply'}</button>
             </form>
           </div>
         </div>

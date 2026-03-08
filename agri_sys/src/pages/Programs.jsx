@@ -130,14 +130,19 @@ export default function Programs() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Program Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage agricultural intervention programs</p>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center shadow-sm">
+            <Briefcase size={17} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Program Management</h1>
+            <p className="text-sm text-slate-500">Manage agricultural intervention programs</p>
+          </div>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm cursor-pointer"
+          className="flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition text-sm font-medium cursor-pointer shadow-sm"
         >
           <Plus size={16} /> Create Program
         </button>
@@ -146,7 +151,7 @@ export default function Programs() {
       {/* Programs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {programs.map(program => (
-          <div key={program.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition">
+          <div key={program.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Briefcase size={18} className="text-gray-400" />
@@ -203,8 +208,8 @@ export default function Programs() {
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold">{editing ? 'Edit Program' : 'Create New Program'}</h2>
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900">{editing ? 'Edit Program' : 'Create New Program'}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <X size={20} />
               </button>
@@ -364,7 +369,7 @@ export default function Programs() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition cursor-pointer"
+                  className="flex-1 bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition cursor-pointer text-sm font-semibold"
                 >
                   {editing ? 'Update Program' : 'Create Program'}
                 </button>
@@ -385,8 +390,8 @@ export default function Programs() {
       {showDetail && selectedProgram && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold">{selectedProgram.name}</h2>
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900">{selectedProgram.name}</h2>
               <button
                 onClick={() => setShowDetail(false)}
                 className="text-gray-400 hover:text-gray-600 cursor-pointer"

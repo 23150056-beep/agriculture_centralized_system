@@ -82,13 +82,18 @@ export default function Orders() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Distribution Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Track farmer recipients and manage item releases</p>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-purple-700 rounded-xl flex items-center justify-center shadow-sm">
+            <Plus size={17} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Distribution Management</h1>
+            <p className="text-sm text-slate-500">Track farmer recipients and manage item releases</p>
+          </div>
         </div>
         {isAuthorized && (
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm cursor-pointer">
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition text-sm font-medium cursor-pointer shadow-sm">
             <Plus size={16} /> New Distribution
           </button>
         )}
@@ -98,15 +103,15 @@ export default function Orders() {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-left">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 font-medium">Code</th>
-                {!isFarmer && <th className="px-4 py-3 font-medium">Farmer</th>}
-                <th className="px-4 py-3 font-medium">Item</th>
-                <th className="px-4 py-3 font-medium">Quantity</th>
-                <th className="px-4 py-3 font-medium">Program</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                {isAuthorized && <th className="px-4 py-3 font-medium">Actions</th>}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Code</th>
+                {!isFarmer && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Farmer</th>}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Item</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Quantity</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Program</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                {isAuthorized && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Update</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -156,7 +161,7 @@ export default function Orders() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 m-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold mb-4">Create New Distribution</h2>
+            <h2 className="text-base font-bold text-slate-900 mb-4">Create New Distribution</h2>
             <form onSubmit={handleCreate} className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Select Farmer (Eligible Only)</label>
@@ -244,7 +249,7 @@ export default function Orders() {
               <div className="flex gap-2 pt-3">
                 <button
                   type="submit"
-                  className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition cursor-pointer"
+                  className="flex-1 bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition cursor-pointer text-sm font-semibold"
                 >
                   Create Distribution
                 </button>
