@@ -27,11 +27,11 @@ class Program(Base):
     __tablename__ = "programs"
 
     id = Column(Integer, primary_key=True, index=True)
-    program_code = Column(String, unique=True, nullable=False, index=True)
-    name = Column(String, nullable=False, index=True)
+    program_code = Column(String(255), unique=True, nullable=False, index=True)
+    name = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)
-    program_type = Column(String, default=ProgramType.other.value)
-    status = Column(String, default=ProgramStatus.planned.value)
+    program_type = Column(String(255), default=ProgramType.other.value)
+    status = Column(String(255), default=ProgramStatus.planned.value)
     
     # Program Period
     start_date = Column(DateTime(timezone=True), nullable=False)
@@ -39,7 +39,7 @@ class Program(Base):
     
     # Budget & Allocation
     budget = Column(Float, nullable=True)
-    currency = Column(String, default="USD", nullable=True)
+    currency = Column(String(255), default="USD", nullable=True)
     target_beneficiaries = Column(Integer, nullable=True)
     actual_beneficiaries = Column(Integer, default=0)
     
@@ -47,9 +47,9 @@ class Program(Base):
     target_regions = Column(Text, nullable=True)  # JSON array
     
     # Management
-    coordinator_name = Column(String, nullable=True)
-    coordinator_contact = Column(String, nullable=True)
-    implementing_agency = Column(String, nullable=True)
+    coordinator_name = Column(String(255), nullable=True)
+    coordinator_contact = Column(String(255), nullable=True)
+    implementing_agency = Column(String(255), nullable=True)
     
     # Status tracking
     is_active = Column(Boolean, default=True)

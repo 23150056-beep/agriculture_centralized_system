@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { UserCheck, X, CheckCircle, XCircle, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
+import DataTable from '../components/DataTable';
+import DocumentUploader from '../components/DocumentUploader';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -59,10 +61,79 @@ export default function Farmers() {
     }
   };
 
-  const filteredFarmers = farmers.filter(f => {
-    if (filter === 'all') return true;
-    return f.eligibility_status === filter;
-  });
+  const filteredFarmers = useMemo(() => {
+    return farmers.filter(f => {
+      if (filter === 'all') return true;
+      return f.eligibility_status === filter;
+    });
+  }, [farmers, filter]);
+
+  const columns = useMemo(() => [
+    {
+      header: 'Farmer',
+      accessorFn: row => `${row.name} ${row.email}`,
+      cell: info => (
+        <div>
+          <p className="font-medium text-slate-800">{info.row.original.name}</p>
+          <p className="text-xs text-slate-500">{info.row.original.email}</p>
+        </div>
+      ),
+    },
+    {
+      header: 'Farmer ID',
+      accessorKey: 'farmer_id_number',
+      cell: info => <span className="text-slate-600 font-mono text-xs">{info.getValue() || '—'}</span>
+    },
+    {
+      header: 'Location',
+      accessorKey: 'farm_location',
+      cell: info => <span className="text-slate-600">{info.getValue() || '—'}</span>
+    },
+    {
+      header: 'Farm Size',
+      accessorKey: 'farm_size',
+      cell: info => <span className="text-slate-600">{info.getValue() ? `${info.getValue()} ha` : '—'}</span>
+    },
+    {
+      header: 'Insurance',
+      id: 'insurance',
+      cell: info => {
+        const farmer = info.row.original;
+        return farmer.has_insurance ? (
+          <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+            <CheckCircle size={12} />
+            {farmer.insurance_validated ? 'Validated' : 'Pending'}
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-slate-400">
+            <XCircle size={12} />
+            None
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Status',
+      accessorKey: 'eligibility_status',
+      cell: info => (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${statusColors[info.getValue() || 'pending']}`}>
+          {info.getValue()}
+        </span>
+      )
+    },
+    {
+      header: 'Action',
+      id: 'actions',
+      cell: info => (
+        <button
+          onClick={() => openDetail(info.row.original)}
+          className="inline-flex items-center text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer"
+        >
+          Review
+        </button>
+      )
+    }
+  ], []);
 
   const isAuthorized = user?.role === 'admin' || user?.role === 'officer';
 
@@ -80,10 +151,10 @@ export default function Farmers() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-green-700 rounded-xl flex items-center justify-center shadow-sm">
-            <UserCheck size={17} className="text-white" />
+          <div className="w-10 h-10 bg-green-700 rounded-xl flex items-center justify-center shadow-sm">
+            <UserCheck size={18} className="text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900">Farmer Registry</h1>
@@ -91,271 +162,182 @@ export default function Farmers() {
           </div>
         </div>
         <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg shadow-sm">
-          <UserCheck size={15} className="text-green-700" />
-          <span className="text-sm font-medium text-slate-700">{farmers.length} Farmers</span>
+          <Users size={16} className="text-green-700" />
+          <span className="text-sm font-medium text-slate-700">{farmers.length} Registered</span>
         </div>
       </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
-        {[['all', 'All', farmers.length, 'bg-green-700'], ['pending', 'Pending', farmers.filter(f => f.eligibility_status === 'pending').length, 'bg-amber-600'], ['approved', 'Approved', farmers.filter(f => f.eligibility_status === 'approved').length, 'bg-emerald-700'], ['rejected', 'Rejected', farmers.filter(f => f.eligibility_status === 'rejected').length, 'bg-red-600']].map(([val, label, count, activeColor]) => (
+        {[['all', 'All', farmers.length, 'bg-slate-800'], 
+          ['pending', 'Pending Approval', farmers.filter(f => f.eligibility_status === 'pending').length, 'bg-amber-500'], 
+          ['approved', 'Approved', farmers.filter(f => f.eligibility_status === 'approved').length, 'bg-green-600'], 
+          ['rejected', 'Rejected', farmers.filter(f => f.eligibility_status === 'rejected').length, 'bg-rose-600']
+        ].map(([val, label, count, activeColor]) => (
           <button
             key={val}
             onClick={() => setFilter(val)}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer shadow-sm ${
-              filter === val ? `${activeColor} text-white` : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+              filter === val ? `${activeColor} text-white border-transparent` : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
             }`}
           >
-            {label} ({count})
+            {label} <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${filter === val ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
           </button>
         ))}
       </div>
 
-      {/* Farmers Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Farmer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Farmer ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Location</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Farm Size</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Insurance</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredFarmers.map(farmer => (
-                <tr key={farmer.id} className="hover:bg-slate-50 transition-colors duration-150">
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium text-slate-800">{farmer.name}</p>
-                      <p className="text-xs text-slate-500">{farmer.email}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 font-mono text-xs">
-                    {farmer.farmer_id_number || 'â€”'}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{farmer.farm_location || 'â€”'}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {farmer.farm_size ? `${farmer.farm_size} ha` : 'â€”'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {farmer.has_insurance ? (
-                      <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
-                        <CheckCircle size={12} />
-                        {farmer.insurance_validated ? 'Validated' : 'Pending'}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-xs text-slate-400">
-                        <XCircle size={12} />
-                        None
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${statusColors[farmer.eligibility_status]}`}>
-                      {farmer.eligibility_status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => openDetail(farmer)}
-                      className="inline-flex items-center text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer"
-                    >
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredFarmers.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-4">
-                <UserCheck size={22} className="text-slate-400" />
-              </div>
-              <p className="text-sm font-semibold text-slate-700 mb-1">
-                {filter === 'all' ? 'No farmers registered yet' : `No ${filter} farmers`}
-              </p>
-              <p className="text-xs text-slate-500 max-w-xs">
-                {filter === 'all'
-                  ? 'Farmers will appear here once they register through the portal.'
-                  : 'No farmers match this status. Try a different filter.'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataTable 
+        columns={columns} 
+        data={filteredFarmers} 
+        searchPlaceholder="Search farmers by name, email, or ID..." 
+      />
 
       {/* Detail Modal */}
       {showDetail && selectedFarmer && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 className="text-base font-bold text-slate-900">Farmer Profile Review</h2>
-              <button
-                onClick={() => setShowDetail(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                aria-label="Close dialog"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Farmer Information */}
-              <div>
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Farmer Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-xs text-slate-500">Name</span>
-                    <p className="font-semibold text-slate-800 mt-0.5">{selectedFarmer.name}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500">Email</span>
-                    <p className="text-slate-800 mt-0.5">{selectedFarmer.email}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500">Phone</span>
-                    <p className="text-slate-800 mt-0.5">{selectedFarmer.phone || 'â€”'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500">Farmer ID</span>
-                    <p className="text-slate-800 font-mono text-xs mt-0.5">{selectedFarmer.farmer_id_number || 'â€”'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500">Farm Location</span>
-                    <p className="text-slate-800 mt-0.5">{selectedFarmer.farm_location || 'â€”'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500">Farm Size</span>
-                    <p className="text-slate-800 mt-0.5">{selectedFarmer.farm_size ? `${selectedFarmer.farm_size} hectares` : 'â€”'}</p>
-                  </div>
+        <div className="fixed inset-0 bg-slate-900/50 flex flex-col md:flex-row items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col md:flex-row">
+            
+            {/* Left Column: Farmer Details & Documents */}
+            <div className="flex-1 p-6 md:p-8 md:border-r border-slate-100">
+              <div className="flex items-center justify-between mb-6 md:hidden">
+                <h2 className="text-lg font-bold text-slate-900">Farmer Profile</h2>
+                <button onClick={() => setShowDetail(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={20} /></button>
+              </div>
+              
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-slate-900 hidden md:block mb-6">Farmer Profile details</h2>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Identity & Location</h3>
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Full Name</span><p className="font-semibold text-slate-800">{selectedFarmer.name}</p></div>
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Email</span><p className="text-slate-800">{selectedFarmer.email}</p></div>
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Phone Number</span><p className="text-slate-800">{selectedFarmer.phone || '—'}</p></div>
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Farmer ID</span><p className="text-slate-800 font-mono text-xs">{selectedFarmer.farmer_id_number || '—'}</p></div>
+                  <div className="col-span-2"><span className="text-xs text-slate-500 block mb-0.5">Farm Location</span><p className="text-slate-800">{selectedFarmer.farm_location || '—'}</p></div>
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Farm Size</span><p className="text-slate-800">{selectedFarmer.farm_size ? `${selectedFarmer.farm_size} hectares` : '—'}</p></div>
                 </div>
               </div>
 
-              {/* Insurance Information */}
-              <div>
+              <div className="mb-6">
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Insurance Information</h3>
                 {selectedFarmer.has_insurance ? (
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-xs text-slate-500">Provider</span>
-                      <p className="text-slate-800 mt-0.5">{selectedFarmer.insurance_provider || 'â€”'}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-500">Policy Number</span>
-                      <p className="text-slate-800 font-mono text-xs mt-0.5">{selectedFarmer.insurance_policy_number || 'â€”'}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-500">Validation Status</span>
-                      <p className={`font-semibold mt-0.5 ${selectedFarmer.insurance_validated ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {selectedFarmer.insurance_validated ? 'Validated' : 'Pending Validation'}
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 grid grid-cols-2 gap-4 text-sm">
+                    <div><span className="text-xs text-slate-500 block mb-0.5">Provider</span><p className="text-slate-800">{selectedFarmer.insurance_provider || '—'}</p></div>
+                    <div><span className="text-xs text-slate-500 block mb-0.5">Policy Number</span><p className="text-slate-800 font-mono text-xs">{selectedFarmer.insurance_policy_number || '—'}</p></div>
+                    <div className="col-span-2">
+                      <span className="text-xs text-slate-500 block mb-0.5">Validation</span>
+                      <p className={`inline-flex items-center gap-1.5 font-semibold ${selectedFarmer.insurance_validated ? 'text-green-600' : 'text-amber-600'}`}>
+                        {selectedFarmer.insurance_validated ? <><CheckCircle size={14} /> Validated</> : <><AlertTriangle size={14} /> Pending Validation</>}
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">No insurance registered</p>
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex items-center justify-center text-slate-500 text-sm">
+                    <XCircle size={16} className="mr-2" /> No insurance coverage registered
+                  </div>
                 )}
               </div>
+              
+              <div>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Upload Documents</h3>
+                <DocumentUploader 
+                  farmerId={selectedFarmer.id} 
+                  onUploadSuccess={() => { toast.success("Document uploaded successfully"); load(); }} 
+                />
+              </div>
+            </div>
 
-              {/* Review Form */}
-              <div className="border-t border-slate-200 pt-6">
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Eligibility Review</h3>
-                <div className="space-y-4">
+            {/* Right Column: Review Tools */}
+            <div className="w-full md:w-80 bg-slate-50 p-6 md:p-8 flex flex-col">
+              <div className="hidden md:flex justify-end mb-6">
+                <button onClick={() => setShowDetail(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer bg-white p-1.5 rounded-full border border-slate-200 shadow-sm"><X size={16} /></button>
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-200">Official Review</h3>
+                <div className="space-y-5">
+                  
                   <div>
-                    <p className="text-xs font-semibold text-slate-600 mb-2">Decision</p>
-                    <div className="flex gap-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-2">Eligibility Decision *</label>
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setReviewForm({ ...reviewForm, eligibility_status: 'approved' })}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors duration-200 cursor-pointer text-sm font-semibold ${
-                          reviewForm.eligibility_status === 'approved'
-                            ? 'bg-green-50 border-green-500 text-green-700'
-                            : 'border-slate-300 text-slate-600 hover:bg-slate-50'
+                        className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg border transition-colors duration-200 cursor-pointer text-xs font-bold ${
+                          reviewForm.eligibility_status === 'approved' ? 'bg-green-600 border-green-700 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                       >
-                        <CheckCircle size={16} />
+                        <CheckCircle size={14} />
                         Approve
                       </button>
                       <button
                         type="button"
                         onClick={() => setReviewForm({ ...reviewForm, eligibility_status: 'rejected' })}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors duration-200 cursor-pointer text-sm font-semibold ${
-                          reviewForm.eligibility_status === 'rejected'
-                            ? 'bg-red-50 border-red-500 text-red-700'
-                            : 'border-slate-300 text-slate-600 hover:bg-slate-50'
+                        className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg border transition-colors duration-200 cursor-pointer text-xs font-bold ${
+                          reviewForm.eligibility_status === 'rejected' ? 'bg-rose-600 border-rose-700 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                       >
-                        <XCircle size={16} />
+                        <XCircle size={14} />
                         Reject
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="documents_verified"
-                      checked={reviewForm.documents_verified}
-                      onChange={e => setReviewForm({ ...reviewForm, documents_verified: e.target.checked })}
-                      className="rounded accent-green-700 cursor-pointer w-4 h-4"
-                    />
-                    <label htmlFor="documents_verified" className="text-sm text-slate-700 cursor-pointer">
-                      Documents verified
-                    </label>
+                  <div className="flex items-start gap-3 bg-white p-3 rounded-xl border border-slate-200">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="checkbox"
+                        id="documents_verified"
+                        checked={reviewForm.documents_verified}
+                        onChange={e => setReviewForm({ ...reviewForm, documents_verified: e.target.checked })}
+                        className="rounded border-slate-300 text-green-600 focus:ring-green-600 cursor-pointer w-4 h-4"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label htmlFor="documents_verified" className="text-sm font-medium text-slate-800 cursor-pointer">Physical Documents Verified</label>
+                      <p className="text-[11px] text-slate-500 mt-0.5">I confirm I have physically checked matching IDs and land deeds.</p>
+                    </div>
                   </div>
 
                   {reviewForm.eligibility_status === 'rejected' && (
-                    <div>
-                      <label htmlFor="rejection-reason" className="block text-xs font-semibold text-slate-600 mb-1.5">
-                        Rejection Reason *
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                      <label htmlFor="rejection-reason" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Rejection Reason <span className="text-rose-500">*</span>
                       </label>
                       <textarea
                         id="rejection-reason"
                         value={reviewForm.rejection_reason}
                         onChange={e => setReviewForm({ ...reviewForm, rejection_reason: e.target.value })}
-                        rows={3}
-                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none bg-white transition-colors"
-                        placeholder="Explain the reason for rejection"
+                        placeholder="State clear reasons (e.g. Invalid land deeds)"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none h-24"
+                        required
                       />
                     </div>
                   )}
-
+                  
                   <div>
-                    <label htmlFor="profile-notes" className="block text-xs font-semibold text-slate-600 mb-1.5">
-                      Review Notes
+                    <label htmlFor="profile-notes" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Officer Notes <span className="text-slate-400 font-normal">(Internal)</span>
                     </label>
                     <textarea
                       id="profile-notes"
                       value={reviewForm.profile_notes}
                       onChange={e => setReviewForm({ ...reviewForm, profile_notes: e.target.value })}
-                      rows={3}
-                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none bg-white transition-colors"
-                      placeholder="Add any notes about this farmer's profile"
+                      placeholder="Add any internal contextual notes..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-700/20 focus:border-green-700 resize-none h-24"
                     />
                   </div>
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-2 border-t border-slate-200">
+              
+              <div className="mt-6 pt-4 border-t border-slate-200">
                 <button
                   onClick={handleReview}
-                  className="flex-1 bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition-colors duration-200 cursor-pointer text-sm font-semibold"
+                  className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white font-semibold py-2.5 px-4 rounded-xl hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
                 >
-                  Submit Review
-                </button>
-                <button
-                  onClick={() => setShowDetail(false)}
-                  className="px-5 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors duration-200 cursor-pointer text-sm text-slate-700"
-                >
-                  Cancel
+                  Save Evaluation
                 </button>
               </div>
             </div>
+
           </div>
         </div>
       )}

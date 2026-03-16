@@ -9,6 +9,8 @@ from models.product import Product, SupplyStatus
 from models.user import User, UserRole, FarmerStatus
 from schemas.order import OrderCreate, OrderUpdateStatus, OrderOut, DistributionRelease, DistributionReport
 from auth.dependencies import get_current_user
+from middleware.audit import log_action
+from services.stock_service import deduct_stock
 
 router = APIRouter(prefix="/distributions", tags=["Distribution Management"])
 
@@ -155,20 +157,25 @@ def create_distribution(
         notes=data.notes,
     )
     
-    # Auto stock deduction
-    product.current_stock -= data.quantity
-
-    # Auto-update product status after deduction
-    if product.current_stock <= 0:
-        product.status = SupplyStatus.out_of_stock.value
-    elif product.current_stock <= product.reorder_level:
-        product.status = SupplyStatus.low_stock.value
-    else:
-        product.status = SupplyStatus.in_stock.value
+    # We do NOT deduct stock here in v2, it will be deducted upon release
+    # Just save the distribution as pending
 
     db.add(order)
     db.commit()
     db.refresh(order)
+    
+    log_action(
+        db=db,
+        user_id=user.id,
+        action="create_distribution",
+        entity_type="order",
+        entity_id=order.id,
+        old_value=None,
+        new_value={"quantity": order.quantity, "status": order.status},
+        description=f"Created distribution for farmer {order.buyer_id}."
+    )
+    db.commit()
+    
     return order
 
 
@@ -190,6 +197,7 @@ def update_distribution_status(
     elif user.role == UserRole.farmer.value:
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    old_status = order.status
     order.status = data.status.value
     if data.distribution_date:
         order.distribution_date = data.distribution_date
@@ -200,6 +208,19 @@ def update_distribution_status(
     
     db.commit()
     db.refresh(order)
+    
+    log_action(
+        db=db,
+        user_id=user.id,
+        action="update_distribution_status",
+        entity_type="order",
+        entity_id=order.id,
+        old_value={"status": old_status},
+        new_value={"status": order.status},
+        description=f"Updated distribution status from {old_status} to {order.status}."
+    )
+    db.commit()
+    
     return order
 
 
@@ -217,6 +238,11 @@ def release_distribution(
     order = db.query(Order).filter(Order.id == distribution_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Distribution not found")
+        
+    if order.status == DistributionStatus.released.value:
+        raise HTTPException(status_code=400, detail="Distribution already released")
+    
+    old_status = order.status
     
     # Update distribution
     order.status = DistributionStatus.released.value
@@ -227,9 +253,26 @@ def release_distribution(
     order.verification_code = data.verification_code or secrets.token_hex(4).upper()
     if data.notes:
         order.notes = data.notes
+        
+    # Deduct stock based on how much was distributed
+    # (assuming it wasn't deducted on create, or if it was, adjust accordingly)
+    deduct_stock(db, order.product_id, order.quantity, user.id)
     
     db.commit()
     db.refresh(order)
+    
+    log_action(
+        db=db,
+        user_id=user.id,
+        action="release_distribution",
+        entity_type="order",
+        entity_id=order.id,
+        old_value={"status": old_status},
+        new_value={"status": order.status},
+        description=f"Released {order.quantity} of product {order.product_id} to farmer {order.buyer_id}."
+    )
+    db.commit() # commit audit log
+    
     return order
 
 

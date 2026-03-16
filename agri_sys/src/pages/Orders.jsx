@@ -1,268 +1,391 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Plus, FileText, ClipboardList, X } from 'lucide-react';
+import { ShoppingBag, Search, Plus, CheckCircle, Clock, FileText, AlertCircle, X, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import DataTable from '../components/DataTable';
 
 const statusColors = {
-  pending: 'bg-yellow-100 text-yellow-700',
+  pending: 'bg-amber-100 text-amber-700',
   approved: 'bg-blue-100 text-blue-700',
-  released: 'bg-purple-100 text-purple-700',
+  released: 'bg-indigo-100 text-indigo-700',
   completed: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-700',
 };
-const statuses = ['pending', 'approved', 'released', 'completed', 'cancelled'];
-
-const inputCls = 'w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none bg-white transition-colors';
-const labelCls = 'block text-xs font-semibold text-slate-600 mb-1.5';
 
 export default function Orders() {
   const { user } = useAuth();
-  const [distributions, setDistributions] = useState([]);
-  const [farmers, setFarmers] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [filter, setFilter] = useState('all');
+  
+  // Modal states
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  const [formData, setFormData] = useState({
+    product_id: '',
+    program_id: '',
+    quantity: 1,
+    notes: '',
+  });
+
+  // Reference data
   const [products, setProducts] = useState([]);
   const [programs, setPrograms] = useState([]);
-  const [showCreate, setShowCreate] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [form, setForm] = useState({ buyer_id: '', product_id: '', quantity: '', program_id: '', distribution_location: '', notes: '' });
+  
+  // Update state review form
+  const [statusForm, setStatusForm] = useState({
+    status: 'completed',
+    notes: ''
+  });
 
   const load = async () => {
     try {
-      const [distData, prodData] = await Promise.all([
-        api.get('/distributions/'),
-        api.get('/products/'),
-      ]);
-      setDistributions(distData.data);
-      setProducts(prodData.data);
-
-      if (user?.role === 'admin' || user?.role === 'officer') {
-        const [farmerData, progData] = await Promise.all([
-          api.get('/auth/farmers?status=approved'),
-          api.get('/programs/?active_only=true'),
-        ]);
-        setFarmers(farmerData.data);
-        setPrograms(progData.data);
-      }
+      const response = await api.get('/distributions/');
+      setOrders(response.data);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error(error);
+      toast.error('Failed to load distributions');
     }
   };
 
-  useEffect(() => { load(); }, [user]);
+  const loadReferences = async () => {
+    if (user?.role === 'admin' || user?.role === 'officer' || user?.role === 'farmer') {
+      try {
+        const [prodRes, progRes] = await Promise.all([
+          api.get('/products/'),
+          api.get('/programs/')
+        ]);
+        // Only allow in_stock/low_stock to be requested
+        setProducts(prodRes.data.filter(p => p.status !== 'out_of_stock' && p.status !== 'expired'));
+        setPrograms(progRes.data.filter(p => p.status === 'active'));
+      } catch (e) { console.error('Failed to load reference metadata'); }
+    }
+  };
 
-  const handleCreate = async (e) => {
+  useEffect(() => { 
+    load(); 
+    loadReferences();
+  }, []);
+
+  const handleRequestSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/distributions/', {
-        buyer_id: parseInt(form.buyer_id),
-        product_id: parseInt(form.product_id),
-        quantity: parseFloat(form.quantity),
-        program_id: form.program_id ? parseInt(form.program_id) : null,
-        distribution_location: form.distribution_location || null,
-        notes: form.notes || null,
-      });
-      toast.success('Distribution created!');
-      setShowCreate(false);
-      setForm({ buyer_id: '', product_id: '', quantity: '', program_id: '', distribution_location: '', notes: '' });
+      await api.post('/distributions/', formData);
+      toast.success('Distribution requested successfully');
+      setShowNewModal(false);
       load();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Request failed');
     }
   };
-
-  const updateStatus = async (id, status) => {
+  
+  const handleStatusUpdate = async (e) => {
+    e.preventDefault();
+    if (!selectedOrder) return;
     try {
-      await api.patch(`/distributions/${id}/status`, { status });
-      toast.success('Status updated');
+      await api.put(`/distributions/${selectedOrder.id}/status`, statusForm);
+      toast.success(`Distribution status updated to ${statusForm.status}`);
+      setShowStatusModal(false);
       load();
-    } catch {
-      toast.error('Failed');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Update failed');
     }
   };
 
-  const isAuthorized = user?.role === 'officer' || user?.role === 'admin';
-  const isFarmer = user?.role === 'farmer';
-  const filtered = statusFilter === 'all' ? distributions : distributions.filter(d => d.status === statusFilter);
+  const openStatusUpdate = (order) => {
+    setSelectedOrder(order);
+    setStatusForm({
+      status: order.status === 'pending' ? 'approved' : 
+              order.status === 'approved' ? 'released' : 
+              order.status === 'released' ? 'completed' : 'completed',
+      notes: ''
+    });
+    setShowStatusModal(true);
+  };
+  
+  const exportCSV = async () => {
+    try {
+      const response = await api.get('/reports/distributions/csv', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `distributions_report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      toast.success('Report downloaded');
+    } catch (e) {
+      toast.error('Failed to export distributions');
+    }
+  };
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      if (filter === 'all') return true;
+      return o.status === filter;
+    });
+  }, [orders, filter]);
+
+  const columns = useMemo(() => [
+    {
+      header: 'Reference Code',
+      accessorKey: 'distribution_code',
+      cell: info => <span className="font-mono text-xs font-semibold text-slate-800 bg-slate-100 px-2 py-1 rounded border border-slate-200">{info.getValue() || `DIST-${info.row.original.id.toString().padStart(4, '0')}`}</span>
+    },
+    {
+      header: 'Beneficiary (Farmer)',
+      id: 'farmer_info',
+      cell: info => (
+        <div>
+          <p className="font-semibold text-slate-800">{info.row.original.farmer?.name || `Farmer #${info.row.original.buyer_id}`}</p>
+          <p className="text-xs text-slate-500">{info.row.original.farmer?.email || 'N/A'}</p>
+        </div>
+      )
+    },
+    {
+      header: 'Intervention Supply',
+      id: 'supply_info',
+      cell: info => (
+        <div>
+          <p className="font-medium text-slate-700">{info.row.original.product?.name || `Item #${info.row.original.product_id}`}</p>
+          <span className="text-xs text-slate-500">Qty: <b>{info.row.original.quantity}</b></span>
+        </div>
+      )
+    },
+    {
+      header: 'Program',
+      id: 'program_info',
+      cell: info => <span className="text-sm text-slate-600">{info.row.original.program?.name || 'Standard Allocation'}</span>
+    },
+    {
+      header: 'Status',
+      accessorKey: 'status',
+      cell: info => (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border transition-colors ${
+          info.getValue() === 'completed' ? 'bg-green-50 border-green-200 text-green-700' :
+          info.getValue() === 'pending' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+          info.getValue() === 'cancelled' ? 'bg-red-50 border-red-200 text-red-700' :
+          'bg-blue-50 border-blue-200 text-blue-700'
+        }`}>
+          {info.getValue()}
+        </span>
+      )
+    },
+    {
+      header: 'Date',
+      accessorFn: row => row.created_at,
+      cell: info => <span className="text-xs text-slate-500">{new Date(info.getValue()).toLocaleDateString()}</span>
+    },
+    {
+      header: 'Action',
+      id: 'actions',
+      cell: info => {
+        const order = info.row.original;
+        if ((user?.role === 'admin' || user?.role === 'officer') && order.status !== 'completed' && order.status !== 'cancelled') {
+          return (
+            <button
+              onClick={() => openStatusUpdate(order)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors border border-purple-200"
+            >
+              <ShieldCheck size={14} /> Update Process
+            </button>
+          );
+        }
+        return <span className="text-xs text-slate-400 italic">No action required</span>;
+      }
+    }
+  ], [user]);
+
+  const isPrivileged = user?.role === 'admin' || user?.role === 'officer';
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-purple-700 rounded-xl flex items-center justify-center shadow-sm">
-            <FileText size={17} className="text-white" />
+          <div className="w-10 h-10 bg-purple-700 rounded-xl flex items-center justify-center shadow-sm">
+            <ShoppingBag size={18} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Distribution Management</h1>
-            <p className="text-sm text-slate-500">Track farmer recipients and manage item releases</p>
+            <h1 className="text-xl font-bold text-slate-900">Distributions</h1>
+            <p className="text-sm text-slate-500">Track agricultural intervention deliveries & supply claims</p>
           </div>
         </div>
-        {isAuthorized && (
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-green-700 text-white px-4 py-2.5 rounded-lg hover:bg-green-800 transition-colors duration-200 text-sm font-semibold cursor-pointer shadow-sm"
-          >
-            <Plus size={16} /> New Distribution
-          </button>
-        )}
-      </div>
-
-      {/* Status Filter Pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {['all', ...statuses].map(s => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer capitalize ${
-              statusFilter === s
-                ? 'bg-green-700 text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-            }`}
-          >
-            {s === 'all' ? 'All Distributions' : s}
-          </button>
-        ))}
-      </div>
-
-      {/* Distributions Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Code</th>
-                {!isFarmer && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Farmer</th>}
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Item</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Program</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Location</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
-                {isAuthorized && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Update</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map(d => {
-                const prod = products.find(p => p.id === d.product_id);
-                const farmer = farmers.find(f => f.id === d.buyer_id);
-                const program = programs.find(p => p.id === d.program_id);
-                return (
-                  <tr key={d.id} className="hover:bg-slate-50 transition-colors duration-150">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <FileText size={13} className="text-slate-400 shrink-0" />
-                        <span className="text-slate-700 font-mono text-xs">{d.distribution_code}</span>
-                      </div>
-                    </td>
-                    {!isFarmer && <td className="px-4 py-3 text-slate-800 font-medium">{farmer?.name || `Farmer #${d.buyer_id}`}</td>}
-                    <td className="px-4 py-3 text-slate-800">{prod?.name || `Item #${d.product_id}`}</td>
-                    <td className="px-4 py-3 text-right text-slate-700 tabular-nums font-medium">
-                      {d.quantity} <span className="text-slate-400 font-normal text-xs">{prod?.unit || ''}</span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 text-xs">{program?.name || (d.program_id ? `Program #${d.program_id}` : '—')}</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">{d.distribution_location || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${statusColors[d.status]}`}>
-                        {d.status}
-                      </span>
-                    </td>
-                    {isAuthorized && (
-                      <td className="px-4 py-3">
-                        <select
-                          value={d.status}
-                          onChange={e => updateStatus(d.id, e.target.value)}
-                          className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-green-600 bg-white cursor-pointer transition-colors"
-                        >
-                          {statuses.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
-                        </select>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-4">
-                <ClipboardList size={22} className="text-slate-400" />
-              </div>
-              <p className="text-sm font-semibold text-slate-700 mb-1">
-                {statusFilter === 'all' ? 'No distributions yet' : `No ${statusFilter} distributions`}
-              </p>
-              <p className="text-xs text-slate-500 mb-4 max-w-xs">
-                {statusFilter === 'all'
-                  ? 'Begin distributing supplies to eligible farmers by creating a distribution record.'
-                  : 'No records match this status. Try selecting a different filter.'}
-              </p>
-              {statusFilter === 'all' && isAuthorized && (
-                <button
-                  onClick={() => setShowCreate(true)}
-                  className="inline-flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition-colors duration-200 text-sm font-semibold cursor-pointer"
-                >
-                  <Plus size={15} /> Create First Distribution
-                </button>
-              )}
-            </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {isPrivileged && (
+            <button 
+              onClick={exportCSV}
+              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              <FileText size={16} /> Export Reports
+            </button>
+          )}
+          {user?.role === 'farmer' && user?.eligibility_status === 'approved' && (
+            <button
+              onClick={() => {
+                setFormData({ product_id: '', program_id: '', quantity: 1, notes: '' });
+                setShowNewModal(true);
+              }}
+              className="flex items-center gap-2 bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-800 transition-colors shadow-sm"
+            >
+              <Plus size={16} /> Request Supply
+            </button>
           )}
         </div>
       </div>
 
-      {/* Create Distribution Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 className="text-base font-bold text-slate-900">Create New Distribution</h2>
-              <button onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer" aria-label="Close dialog">
-                <X size={20} />
-              </button>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        <button onClick={() => setFilter('all')} className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors ${filter === 'all' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}>
+          All ({orders.length})
+        </button>
+        <button onClick={() => setFilter('pending')} className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors ${filter === 'pending' ? 'bg-amber-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}>
+          Pending ({orders.filter(o => o.status === 'pending').length})
+        </button>
+        <button onClick={() => setFilter('completed')} className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors ${filter === 'completed' ? 'bg-green-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}>
+          Completed ({orders.filter(o => o.status === 'completed').length})
+        </button>
+      </div>
+
+      {user?.role === 'farmer' && user?.eligibility_status !== 'approved' && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-4">
+           <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" />
+           <div>
+             <h3 className="font-bold text-amber-900 text-sm">Action Required: Eligibility Pending</h3>
+             <p className="text-amber-700 text-sm mt-1">You must upload your identity verification and land deed documents in your profile. An officer will approve your account before you can request agricultural distributions.</p>
+           </div>
+        </div>
+      )}
+
+      <DataTable 
+        columns={columns} 
+        data={filteredOrders} 
+        searchPlaceholder="Search by reference code or beneficiary..." 
+      />
+
+      {/* New Request Modal (Farmer only normally, but admin can create on behalf) */}
+      {showNewModal && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900">Request Agricultural Supply</h2>
+              <button onClick={() => setShowNewModal(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form onSubmit={handleRequestSubmit} className="p-6 space-y-4">
               <div>
-                <label htmlFor="dist-farmer" className={labelCls}>Farmer Recipient *</label>
-                <select id="dist-farmer" required value={form.buyer_id} onChange={e => setForm({ ...form, buyer_id: e.target.value })} className={inputCls + ' cursor-pointer'}>
-                  <option value="">Select eligible farmer…</option>
-                  {farmers.map(f => <option key={f.id} value={f.id}>{f.name} — {f.farmer_id_number || f.email}</option>)}
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Government Program</label>
+                <select
+                  required value={formData.program_id} onChange={e => setFormData({...formData, program_id: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-700/20 focus:border-purple-700"
+                >
+                  <option value="">-- Select Active Program --</option>
+                  {programs.map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="dist-product" className={labelCls}>Supply Item *</label>
-                <select id="dist-product" required value={form.product_id} onChange={e => setForm({ ...form, product_id: e.target.value })} className={inputCls + ' cursor-pointer'}>
-                  <option value="">Select supply item…</option>
-                  {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.current_stock} {p.unit} available)</option>)}
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Intervention Supply (Product)</label>
+                <select
+                  required value={formData.product_id} onChange={e => setFormData({...formData, product_id: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-700/20 focus:border-purple-700"
+                >
+                  <option value="">-- Select Item --</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stock: {p.current_stock} {p.unit})</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="dist-qty" className={labelCls}>Quantity *</label>
-                <input id="dist-qty" type="number" step="0.01" required placeholder="Enter quantity to distribute" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} className={inputCls} />
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Quantity Requested</label>
+                <input
+                  type="number" required min="1"
+                  value={formData.quantity} onChange={e => setFormData({...formData, quantity: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-700/20 focus:border-purple-700"
+                />
               </div>
               <div>
-                <label htmlFor="dist-program" className={labelCls}>Government Program</label>
-                <select id="dist-program" value={form.program_id} onChange={e => setForm({ ...form, program_id: e.target.value })} className={inputCls + ' cursor-pointer'}>
-                  <option value="">No program (standalone)</option>
-                  {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Justification / Notes</label>
+                <textarea
+                  value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm h-20 resize-none focus:ring-2 focus:ring-purple-700/20 focus:border-purple-700"
+                  placeholder="E.g., Farm size expansion require extra seeds..."
+                />
               </div>
-              <div>
-                <label htmlFor="dist-location" className={labelCls}>Distribution Location</label>
-                <input id="dist-location" type="text" placeholder="e.g., Barangay Hall, Municipality Center" value={form.distribution_location} onChange={e => setForm({ ...form, distribution_location: e.target.value })} className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="dist-notes" className={labelCls}>Notes</label>
-                <textarea id="dist-notes" placeholder="Additional remarks or instructions" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="submit" className="flex-1 bg-green-700 text-white py-2.5 rounded-lg hover:bg-green-800 transition-colors duration-200 cursor-pointer text-sm font-semibold">
-                  Create Distribution
-                </button>
-                <button type="button" onClick={() => setShowCreate(false)} className="px-5 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors duration-200 cursor-pointer text-sm text-slate-700">
-                  Cancel
-                </button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
+                <button type="button" onClick={() => setShowNewModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
+                <button type="submit" className="px-4 py-2 text-sm font-semibold text-white bg-purple-700 rounded-lg hover:bg-purple-800 transition-colors shadow-sm">Submit Request</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Process Status Modal (Officer/Admin only) */}
+      {showStatusModal && selectedOrder && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><ShieldCheck className="text-purple-600"/> Process Distribution</h2>
+              <button onClick={() => setShowStatusModal(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+            </div>
+            
+            <div className="p-6 bg-slate-50 border-b border-slate-100 text-sm">
+               <p className="mb-2"><span className="text-slate-500">Ref Code:</span> <span className="font-mono font-bold text-slate-800">{selectedOrder.distribution_code}</span></p>
+               <p className="mb-2"><span className="text-slate-500">Farmer:</span> <span className="font-medium text-slate-800">{selectedOrder.farmer?.name}</span></p>
+               <p><span className="text-slate-500">Request:</span> <span className="font-medium text-slate-800">{selectedOrder.quantity}x {selectedOrder.product?.name}</span></p>
+               
+               <div className="mt-4 p-3 bg-white border border-slate-200 rounded-lg flex gap-3 text-xs text-slate-600">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-3 h-3 rounded-full ${['pending','approved','released','completed'].includes(selectedOrder.status) ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                    <div className="w-0.5 h-6 bg-slate-200"></div>
+                    <div className={`w-3 h-3 rounded-full ${['approved','released','completed'].includes(selectedOrder.status) ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                    <div className="w-0.5 h-6 bg-slate-200"></div>
+                    <div className={`w-3 h-3 rounded-full ${['released','completed'].includes(selectedOrder.status) ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                    <div className="w-0.5 h-6 bg-slate-200"></div>
+                    <div className={`w-3 h-3 rounded-full ${['completed'].includes(selectedOrder.status) ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                  </div>
+                  <div className="flex flex-col gap-[14px]">
+                    <p className={['pending','approved','released','completed'].includes(selectedOrder.status) ? 'font-bold':''}>Pending</p>
+                    <p className={['approved','released','completed'].includes(selectedOrder.status) ? 'font-bold':''}>Approved</p>
+                    <p className={['released','completed'].includes(selectedOrder.status) ? 'font-bold text-indigo-600':'text-indigo-600/50'}>Released (Stock Deducted)</p>
+                    <p className={['completed'].includes(selectedOrder.status) ? 'font-bold text-green-600':''}>Completed (Received)</p>
+                  </div>
+               </div>
+            </div>
+
+            <form onSubmit={handleStatusUpdate} className="p-6 space-y-4 bg-white rounded-b-2xl">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Advance To Stage</label>
+                <select
+                  required value={statusForm.status} onChange={e => setStatusForm({...statusForm, status: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-700/20 focus:border-purple-700"
+                >
+                  <option value="pending">Reset to Pending</option>
+                  <option value="approved">Approve Request</option>
+                  <option value="released">Mark as Released (Deducts Stock)</option>
+                  <option value="completed">Mark as Completed</option>
+                  <option value="cancelled" className="text-red-600 font-bold bg-red-50">Cancel/Reject Distribution</option>
+                </select>
+                {statusForm.status === 'released' && (
+                  <p className="text-xs text-indigo-600 mt-2 flex items-center gap-1"><AlertCircle size={12}/> Moving to 'Released' will permanently deduct {selectedOrder.quantity} units from inventory.</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Officer Notes / Reason</label>
+                <textarea
+                  value={statusForm.notes} onChange={e => setStatusForm({...statusForm, notes: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm h-16 resize-none focus:ring-2 focus:ring-purple-700/20 focus:border-purple-700"
+                  placeholder="Required if cancelling..."
+                  required={statusForm.status === 'cancelled'}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
+                <button type="button" onClick={() => setShowStatusModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                <button type="submit" className="px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-black transition-colors shadow-sm">Confirm Update</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

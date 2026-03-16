@@ -20,28 +20,28 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    name = Column(String, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    role = Column(String, default=UserRole.farmer.value, nullable=False)
-    phone = Column(String, nullable=True)
-    address = Column(String, nullable=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    role = Column(String(255), default=UserRole.farmer.value, nullable=False)
+    phone = Column(String(255), nullable=True)
+    address = Column(String(255), nullable=True)
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # MODULE 1: Farmer Registration & Eligibility Fields
-    farmer_id_number = Column(String, unique=True, nullable=True, index=True)  # Government-issued farmer ID
-    farm_location = Column(String, nullable=True)
+    farmer_id_number = Column(String(255), unique=True, nullable=True, index=True)  # Government-issued farmer ID
+    farm_location = Column(String(255), nullable=True)
     farm_size = Column(Float, nullable=True)  # in hectares
-    farm_size_unit = Column(String, default="hectares", nullable=True)
+    farm_size_unit = Column(String(255), default="hectares", nullable=True)
     crop_types = Column(Text, nullable=True)  # JSON or comma-separated
-    eligibility_status = Column(String, default=FarmerStatus.pending.value, nullable=True)
+    eligibility_status = Column(String(255), default=FarmerStatus.pending.value, nullable=True)
     
     # Insurance Information
     has_insurance = Column(Boolean, default=False)
-    insurance_provider = Column(String, nullable=True)
-    insurance_policy_number = Column(String, nullable=True)
+    insurance_provider = Column(String(255), nullable=True)
+    insurance_policy_number = Column(String(255), nullable=True)
     insurance_expiry_date = Column(DateTime(timezone=True), nullable=True)
     insurance_validated = Column(Boolean, default=False)
     insurance_validated_at = Column(DateTime(timezone=True), nullable=True)
