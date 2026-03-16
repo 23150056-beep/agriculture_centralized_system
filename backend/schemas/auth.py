@@ -1,11 +1,12 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
+import re
 from models.user import UserRole, FarmerStatus
 
 
 # MODULE 1: Farmer Registration & Eligibility Management
 class UserRegister(BaseModel):
-    email: str
+    email: EmailStr
     name: str
     password: str
     role: UserRole = UserRole.farmer
@@ -15,6 +16,20 @@ class UserRegister(BaseModel):
     farm_location: str | None = None
     farm_size: float | None = None
     crop_types: str | None = None
+
+    @field_validator('password')
+    @classmethod
+    def password_strong_enough(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('Password must contain at least one digit')
+        return v
+
 
 
 class FarmerProfileUpdate(BaseModel):
@@ -53,6 +68,7 @@ class UserLogin(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    refresh_token: str | None = None
 
 
 class UserOut(BaseModel):

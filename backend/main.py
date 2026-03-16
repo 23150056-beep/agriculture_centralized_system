@@ -6,6 +6,9 @@ from auth.router import router as auth_router
 from routers.products import router as products_router
 from routers.orders import router as orders_router
 from routers.programs import router as programs_router
+from routers.analytics import router as analytics_router
+from routers.reports import router as reports_router
+from routers.users import router as users_router
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -19,7 +22,14 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,6 +40,9 @@ app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(orders_router)
 app.include_router(programs_router)
+app.include_router(analytics_router)
+app.include_router(reports_router)
+app.include_router(users_router)
 
 
 @app.exception_handler(Exception)

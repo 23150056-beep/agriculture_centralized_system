@@ -18,7 +18,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
-    distribution_code = Column(String, unique=True, nullable=False, index=True)
+    distribution_code = Column(String(255), unique=True, nullable=False, index=True)
     
     # Farmer Recipient (renamed from buyer)
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # farmer_id
@@ -26,7 +26,7 @@ class Order(Base):
     # Item Being Distributed (intervention supply)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     quantity = Column(Float, nullable=False)
-    unit = Column(String, nullable=True)
+    unit = Column(String(255), nullable=True)
     
     # Program Association
     program_id = Column(Integer, ForeignKey("programs.id"), nullable=True)
@@ -35,19 +35,19 @@ class Order(Base):
     officer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Transaction Details
-    status = Column(String, default=DistributionStatus.pending.value)
+    status = Column(String(255), default=DistributionStatus.pending.value)
     distribution_date = Column(DateTime(timezone=True), nullable=True)
     release_date = Column(DateTime(timezone=True), nullable=True)  # When item was physically released
     
     # Tracking
     total_price = Column(Float, nullable=True)  # Optional: track value
     notes = Column(Text, nullable=True)
-    farmer_signature = Column(String, nullable=True)  # Path to signature file
-    officer_signature = Column(String, nullable=True)
-    verification_code = Column(String, nullable=True)  # For verification
+    farmer_signature = Column(String(255), nullable=True)  # Path to signature file
+    officer_signature = Column(String(255), nullable=True)
+    verification_code = Column(String(255), nullable=True)  # For verification
     
     # Location
-    distribution_location = Column(String, nullable=True)
+    distribution_location = Column(String(255), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -4,14 +4,20 @@ from config.settings import get_settings
 
 settings = get_settings()
 
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-db_url = settings.database_url if settings.database_url.startswith("sqlite") else settings.database_url.replace("postgresql://", "postgresql+psycopg://")
-engine = create_engine(db_url, pool_pre_ping=True, connect_args=connect_args)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./agri_distribution.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False}, # Needed for SQLite
+    pool_pre_ping=True,       # check if conn is alive
+    pool_recycle=3600,        # recycle connections every hour
+)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 class Base(DeclarativeBase):
     pass
+
 
 
 def get_db():
