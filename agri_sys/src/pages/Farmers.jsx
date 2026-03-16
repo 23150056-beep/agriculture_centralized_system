@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { UserCheck, X, CheckCircle, XCircle, Users } from 'lucide-react';
+import { UserCheck, X, CheckCircle, XCircle, Users, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DataTable from '../components/DataTable';
 import DocumentUploader from '../components/DocumentUploader';
@@ -35,6 +35,7 @@ export default function Farmers() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, []);
 
   const openDetail = (farmer) => {
@@ -82,17 +83,17 @@ export default function Farmers() {
     {
       header: 'Farmer ID',
       accessorKey: 'farmer_id_number',
-      cell: info => <span className="text-slate-600 font-mono text-xs">{info.getValue() || '—'}</span>
+      cell: info => <span className="text-slate-600 font-mono text-xs">{info.getValue() || 'ï¿½'}</span>
     },
     {
       header: 'Location',
       accessorKey: 'farm_location',
-      cell: info => <span className="text-slate-600">{info.getValue() || '—'}</span>
+      cell: info => <span className="text-slate-600">{info.getValue() || 'ï¿½'}</span>
     },
     {
       header: 'Farm Size',
       accessorKey: 'farm_size',
-      cell: info => <span className="text-slate-600">{info.getValue() ? `${info.getValue()} ha` : '—'}</span>
+      cell: info => <span className="text-slate-600">{info.getValue() ? `${info.getValue()} ha` : 'ï¿½'}</span>
     },
     {
       header: 'Insurance',
@@ -209,10 +210,10 @@ export default function Farmers() {
                 <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm bg-slate-50 rounded-xl p-4 border border-slate-100">
                   <div><span className="text-xs text-slate-500 block mb-0.5">Full Name</span><p className="font-semibold text-slate-800">{selectedFarmer.name}</p></div>
                   <div><span className="text-xs text-slate-500 block mb-0.5">Email</span><p className="text-slate-800">{selectedFarmer.email}</p></div>
-                  <div><span className="text-xs text-slate-500 block mb-0.5">Phone Number</span><p className="text-slate-800">{selectedFarmer.phone || '—'}</p></div>
-                  <div><span className="text-xs text-slate-500 block mb-0.5">Farmer ID</span><p className="text-slate-800 font-mono text-xs">{selectedFarmer.farmer_id_number || '—'}</p></div>
-                  <div className="col-span-2"><span className="text-xs text-slate-500 block mb-0.5">Farm Location</span><p className="text-slate-800">{selectedFarmer.farm_location || '—'}</p></div>
-                  <div><span className="text-xs text-slate-500 block mb-0.5">Farm Size</span><p className="text-slate-800">{selectedFarmer.farm_size ? `${selectedFarmer.farm_size} hectares` : '—'}</p></div>
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Phone Number</span><p className="text-slate-800">{selectedFarmer.phone || 'ï¿½'}</p></div>
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Farmer ID</span><p className="text-slate-800 font-mono text-xs">{selectedFarmer.farmer_id_number || 'ï¿½'}</p></div>
+                  <div className="col-span-2"><span className="text-xs text-slate-500 block mb-0.5">Farm Location</span><p className="text-slate-800">{selectedFarmer.farm_location || 'ï¿½'}</p></div>
+                  <div><span className="text-xs text-slate-500 block mb-0.5">Farm Size</span><p className="text-slate-800">{selectedFarmer.farm_size ? `${selectedFarmer.farm_size} hectares` : 'ï¿½'}</p></div>
                 </div>
               </div>
 
@@ -220,8 +221,8 @@ export default function Farmers() {
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Insurance Information</h3>
                 {selectedFarmer.has_insurance ? (
                   <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 grid grid-cols-2 gap-4 text-sm">
-                    <div><span className="text-xs text-slate-500 block mb-0.5">Provider</span><p className="text-slate-800">{selectedFarmer.insurance_provider || '—'}</p></div>
-                    <div><span className="text-xs text-slate-500 block mb-0.5">Policy Number</span><p className="text-slate-800 font-mono text-xs">{selectedFarmer.insurance_policy_number || '—'}</p></div>
+                    <div><span className="text-xs text-slate-500 block mb-0.5">Provider</span><p className="text-slate-800">{selectedFarmer.insurance_provider || 'ï¿½'}</p></div>
+                    <div><span className="text-xs text-slate-500 block mb-0.5">Policy Number</span><p className="text-slate-800 font-mono text-xs">{selectedFarmer.insurance_policy_number || 'ï¿½'}</p></div>
                     <div className="col-span-2">
                       <span className="text-xs text-slate-500 block mb-0.5">Validation</span>
                       <p className={`inline-flex items-center gap-1.5 font-semibold ${selectedFarmer.insurance_validated ? 'text-green-600' : 'text-amber-600'}`}>

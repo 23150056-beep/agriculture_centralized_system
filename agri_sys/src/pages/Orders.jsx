@@ -1,17 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { ShoppingBag, Search, Plus, CheckCircle, Clock, FileText, AlertCircle, X, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Plus, FileText, AlertCircle, X, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DataTable from '../components/DataTable';
-
-const statusColors = {
-  pending: 'bg-amber-100 text-amber-700',
-  approved: 'bg-blue-100 text-blue-700',
-  released: 'bg-indigo-100 text-indigo-700',
-  completed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-700',
-};
 
 export default function Orders() {
   const { user } = useAuth();
@@ -60,13 +52,14 @@ export default function Orders() {
         // Only allow in_stock/low_stock to be requested
         setProducts(prodRes.data.filter(p => p.status !== 'out_of_stock' && p.status !== 'expired'));
         setPrograms(progRes.data.filter(p => p.status === 'active'));
-      } catch (e) { console.error('Failed to load reference metadata'); }
+      } catch { console.error('Failed to load reference metadata'); }
     }
   };
 
   useEffect(() => { 
-    load(); 
+    load();
     loadReferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRequestSubmit = async (e) => {
@@ -116,7 +109,7 @@ export default function Orders() {
       link.click();
       link.parentNode.removeChild(link);
       toast.success('Report downloaded');
-    } catch (e) {
+    } catch {
       toast.error('Failed to export distributions');
     }
   };

@@ -43,7 +43,8 @@ export default function Layout({ children }) {
         {/* Navigation */}
         <nav className="flex-1 px-3 py-5 space-y-0.5">
           <p className="text-green-500 text-[10px] font-bold uppercase tracking-widest px-3 mb-3">Navigation</p>
-          {navItems.map(({ to, label, icon: Icon }) => {
+          {navItems.map(({ to, label, icon }) => {
+            const NavIcon = icon;
             const active = location.pathname === to;
             return (
               <Link
@@ -53,7 +54,7 @@ export default function Layout({ children }) {
                   active ? 'bg-green-700 text-white shadow-sm' : 'text-green-300 hover:bg-green-800/50 hover:text-white'
                 }`}
               >
-                <Icon size={16} className={active ? 'text-white' : 'text-green-400'} />
+                <NavIcon size={16} className={active ? 'text-white' : 'text-green-400'} />
                 <span className="flex-1">{label}</span>
                 {active && <div className="w-1.5 h-1.5 rounded-full bg-green-300" />}
               </Link>

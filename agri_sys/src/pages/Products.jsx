@@ -1,13 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Package, Plus, Search, Edit2, AlertTriangle, Archive, FileSpreadsheet } from 'lucide-react';
+import { Package, Plus, Edit2, AlertTriangle, Archive, FileSpreadsheet, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DataTable from '../components/DataTable';
 import StockBadge from '../components/StockBadge';
 
 export default function Products() {
   const { user } = useAuth();
+  const isPrivileged = user?.role === 'admin' || user?.role === 'officer';
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -37,6 +38,7 @@ export default function Products() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e) => {
@@ -88,7 +90,7 @@ export default function Products() {
       link.click();
       link.parentNode.removeChild(link);
       toast.success('Report downloaded');
-    } catch (e) {
+    } catch {
       toast.error('Failed to export report');
     }
   };
@@ -154,8 +156,8 @@ export default function Products() {
       id: 'logistics',
       cell: info => (
         <div className="text-sm">
-          <p className="text-slate-700">{info.row.original.storage_location || '—'}</p>
-          <p className="text-xs text-slate-400">{info.row.original.supplier_name || '—'}</p>
+          <p className="text-slate-700">{info.row.original.storage_location || 'ï¿½'}</p>
+          <p className="text-xs text-slate-400">{info.row.original.supplier_name || 'ï¿½'}</p>
         </div>
       )
     },
@@ -174,9 +176,7 @@ export default function Products() {
         )
       )
     }
-  ], []);
-
-  const isPrivileged = user?.role === 'admin' || user?.role === 'officer';
+  ], [isPrivileged]);
 
   return (
     <div>

@@ -29,11 +29,12 @@ ChartJS.register(
   Filler
 );
 
-function StatCard({ icon: Icon, label, value, subtext, iconBg, iconColor }) {
+function StatCard({ icon, label, value, subtext, iconBg, iconColor }) {
+  const IconComponent = icon;
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm transition-all hover:shadow-md">
       <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-        <Icon size={21} className={iconColor} />
+        <IconComponent size={21} className={iconColor} />
       </div>
       <div>
         <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</p>
@@ -46,17 +47,18 @@ function StatCard({ icon: Icon, label, value, subtext, iconBg, iconColor }) {
   );
 }
 
-function SectionHeader({ icon: Icon, number, title, color }) {
+function SectionHeader({ icon, number, title, color }) {
+  const IconComponent = icon;
   return (
     <div className="flex items-center gap-3 mb-4">
       {number && (
         <div className={`w-7 h-7 ${color} rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
-          <Icon size={14} className="text-white" />
+          <IconComponent size={14} className="text-white" />
         </div>
       )}
-      {!number && Icon && (
+      {!number && IconComponent && (
         <div className={`w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
-          <Icon size={14} className="text-slate-600" />
+          <IconComponent size={14} className="text-slate-600" />
         </div>
       )}
       <div>

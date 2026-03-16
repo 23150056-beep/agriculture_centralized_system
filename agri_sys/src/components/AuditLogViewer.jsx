@@ -1,17 +1,10 @@
-import React, { useState, useEffect } from "react";
-import api from "../services/api";
+import React, { useState } from "react";
 import { format } from "date-fns";
 import { Activity, Clock } from "lucide-react";
 
-export default function AuditLogViewer({ entityType, entityId }) {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Requires a unified audit endpoint or specific ones in backend.
-    // Example path assumption: /analytics/audit?entity_type=...
-    setLoading(false);
-  }, [entityType, entityId]);
+export default function AuditLogViewer() {
+  const [logs] = useState([]);
+  const loading = false;
 
   if (loading) {
     return <div className="text-sm text-slate-500 animate-pulse">Loading audit history...</div>;

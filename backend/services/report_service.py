@@ -24,7 +24,7 @@ def generate_distributions_csv(
         Program.name.label("program_name")
     ).join(User, Order.buyer_id == User.id)\
      .join(Product, Order.product_id == Product.id)\
-     .join(Program, Order.program_id == Program.id)
+     .outerjoin(Program, Order.program_id == Program.id)
      
     if program_id:
         q = q.filter(Order.program_id == program_id)

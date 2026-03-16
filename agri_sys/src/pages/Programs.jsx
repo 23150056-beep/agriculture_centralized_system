@@ -53,6 +53,7 @@ export default function Programs() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, []);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });

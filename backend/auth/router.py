@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Body
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from config.database import get_db
@@ -62,7 +62,7 @@ def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
     return TokenResponse(access_token=token, refresh_token=refresh)
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+def refresh_token(refresh_token: str = Body(..., embed=True), db: Session = Depends(get_db)):
     payload = verify_token(refresh_token, token_type="refresh")
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")

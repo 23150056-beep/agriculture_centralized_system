@@ -51,14 +51,17 @@ export default function Login() {
               { icon: Leaf, label: 'Farmer Registration & Eligibility' },
               { icon: BarChart3, label: 'Inventory & Stock Monitoring' },
               { icon: Shield, label: 'Distribution & Program Management' },
-            ].map(({ icon: Icon, label }, i) => (
+            ].map(({ icon, label }, i) => {
+              const NavIcon = icon;
+              return (
               <div key={i} className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-green-800 flex items-center justify-center flex-shrink-0">
-                  <Icon size={13} className="text-green-300" />
+                  <NavIcon size={13} className="text-green-300" />
                 </div>
                 <span className="text-green-200 text-sm">{label}</span>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

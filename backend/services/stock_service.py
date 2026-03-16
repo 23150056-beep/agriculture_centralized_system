@@ -11,6 +11,7 @@ def deduct_stock(db: Session, product_id: int, quantity: float, user_id: int) ->
         raise HTTPException(status_code=404, detail="Product not found")
         
     old_stock = product.current_stock
+    old_status = product.status
     
     if old_stock < quantity:
         raise HTTPException(status_code=400, detail=f"Insufficient stock for product. Available: {old_stock}")
@@ -33,7 +34,7 @@ def deduct_stock(db: Session, product_id: int, quantity: float, user_id: int) ->
         action="deduct_stock",
         entity_type="product",
         entity_id=product.id,
-        old_value={"current_stock": old_stock, "status": product.status},
+        old_value={"current_stock": old_stock, "status": old_status},
         new_value={"current_stock": product.current_stock, "status": product.status},
         description=f"Stock deducted by {quantity} for distribution."
     )

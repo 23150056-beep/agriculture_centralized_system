@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
     if (token) {
       api.get('/auth/me').then(r => setUser(r.data)).catch(() => localStorage.removeItem('token')).finally(() => setLoading(false));
     } else {
-      setLoading(false);
+      Promise.resolve().then(() => setLoading(false));
     }
   }, []);
 
@@ -40,4 +40,5 @@ export function AuthProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

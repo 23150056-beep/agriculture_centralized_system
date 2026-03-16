@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from config.database import get_db
@@ -80,7 +80,7 @@ def program_summary(program_id: int, db: Session = Depends(get_db), current_user
     """Per-program statistics for reporting"""
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
-        return {"error": "Program not found"}
+        raise HTTPException(status_code=404, detail="Program not found")
 
     distributions = db.query(Order).filter(
         Order.program_id == program_id).count()
